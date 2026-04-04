@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   AppTheme._();
 
-  static const _seedColor = Color(0xFF0B6E4F); // teal-green
+  static const _seedColor = Color(0xFF1D9E75); // teal-green
 
   // ── Light theme tokens ───────────────────────────────────────────────────
   static const _bgLight = Color(0xFFF5F6FA);
@@ -67,54 +67,4 @@ class AppTheme {
     ),
   );
 
-  // ── Dark theme tokens ────────────────────────────────────────────────────
-  static const _bgDark = Color(0xFF0F0F1A);
-  static const _cardDark = Color(0xFF1A1A2E);
-  static const _cardHoverDark = Color(0xFF25253D);
-  static const _borderDark = Color(0x0FFFFFFF); // white/6% opacity
-
-  static final ThemeData dark = ThemeData(
-    useMaterial3: true,
-    scaffoldBackgroundColor: _bgDark,
-    hoverColor: _cardHoverDark,
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: _seedColor,
-      brightness: Brightness.dark,
-      surface: _bgDark,
-      onSurface: Colors.white,
-      onSurfaceVariant: const Color(0xFFB0B0B0),
-      outline: _borderDark,
-      outlineVariant: _borderDark,
-    ),
-    cardTheme: const CardThemeData(
-      color: _cardDark,
-      elevation: 4.0,
-      shadowColor: Color(0x330B6E4F), // 20% opacity of seed color
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12.0)),
-        side: BorderSide(color: _borderDark, width: 1.0),
-      ),
-    ),
-    inputDecorationTheme: const InputDecorationTheme(
-      filled: true,
-      fillColor: _cardDark,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12.0)),
-        borderSide: BorderSide(color: _borderDark, width: 1.0),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12.0)),
-        borderSide: BorderSide(color: _borderDark, width: 1.0),
-      ),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-    ),
-    filledButtonTheme: FilledButtonThemeData(
-      style: FilledButton.styleFrom(
-        textStyle: const TextStyle(
-          fontSize: 16.0,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    ),
-  );
 }

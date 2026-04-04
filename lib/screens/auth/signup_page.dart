@@ -26,6 +26,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
+  final _nameCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
   String? _selectedRole;
   bool _obscurePassword = true;
 
@@ -33,6 +35,8 @@ class _SignupPageState extends ConsumerState<SignupPage> {
   void dispose() {
     _emailCtrl.dispose();
     _passwordCtrl.dispose();
+    _nameCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -47,6 +51,7 @@ class _SignupPageState extends ConsumerState<SignupPage> {
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
           role: _selectedRole!,
+          fullName: _nameCtrl.text.trim(),
         );
   }
 
@@ -113,6 +118,25 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                     ),
                     const SizedBox(height: 40),
 
+                    // ── Full Name field ─────────────────────────────────────
+                    TextFormField(
+                      controller: _nameCtrl,
+                      textInputAction: TextInputAction.next,
+                      autofillHints: const [AutofillHints.name],
+                      decoration: const InputDecoration(
+                        labelText: 'Full Name',
+                        hintText: 'Jane Doe',
+                        prefixIcon: Icon(Icons.person_outline),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter your full name';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     // ── Email field ─────────────────────────────────────────
                     TextFormField(
                       controller: _emailCtrl,
@@ -168,9 +192,40 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                     ),
                     const SizedBox(height: 16),
 
+                    // ── Confirm Password field ──────────────────────────────
+                    TextFormField(
+                      controller: _confirmCtrl,
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(
+                        labelText: 'Confirm Password',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
+                          ),
+                          onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword,
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please confirm your password';
+                        }
+                        if (value != _passwordCtrl.text) {
+                          return 'Passwords do not match';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
                     // ── Role selector ───────────────────────────────────────
                     DropdownButtonFormField<String>(
-                      value: _selectedRole,
+                      initialValue: _selectedRole,
                       decoration: const InputDecoration(
                         labelText: 'I am a…',
                         prefixIcon: Icon(Icons.badge_outlined),

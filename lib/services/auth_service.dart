@@ -76,14 +76,19 @@ class AuthService {
     required String email,
     required String password,
     required String role,
+    required String fullName,
   }) async {
     late final AuthResponse response;
 
-    // 1. Create the auth user.
+    // 1. Create the auth user with metadata (trigger handles profile insert).
     try {
       response = await supabase.auth.signUp(
         email: email,
         password: password,
+        data: {
+          'full_name': fullName,
+          'role': role,
+        },
       );
     } on AuthException catch (e) {
       throw AuthSignUpException(e.message);
@@ -93,26 +98,9 @@ class AuthService {
 
     final userId = response.user?.id;
     if (userId == null) {
-      throw AuthSignUpException(
+      throw const AuthSignUpException(
         'Sign-up succeeded but no user ID was returned. '
         'The email may require confirmation.',
-      );
-    }
-
-    // 2. Insert the profile row.
-    try {
-      await supabase.from('profiles').insert({
-        'user_id': userId,
-        'role': role,
-        'is_verified': false,
-      });
-    } on PostgrestException catch (e) {
-      throw ProfileInsertException(
-        'Failed to create profile: ${e.message}',
-      );
-    } catch (e) {
-      throw ProfileInsertException(
-        'Unexpected error creating profile: $e',
       );
     }
 

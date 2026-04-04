@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:health_pilot/providers/auth_provider.dart';
 import 'package:health_pilot/screens/auth/login_page.dart';
@@ -21,6 +22,9 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/login',
     debugLogDiagnostics: true,
+    refreshListenable: _GoRouterRefreshStream(
+      Supabase.instance.client.auth.onAuthStateChange,
+    ),
     redirect: (context, state) {
       final isAuthenticated = authState.isAuthenticated;
       final isVerified = authState.isVerified;
@@ -36,7 +40,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Signed in but not verified → pending verification.
-      if (!isVerified) {
+      if (role == 'doctor' && !isVerified) {
         return currentPath == '/pending-verification'
             ? null
             : '/pending-verification';
@@ -74,3 +78,16 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+class _GoRouterRefreshStream extends ChangeNotifier {
+  _GoRouterRefreshStream(Stream<dynamic> stream) {
+    notifyListeners();
+    _subscription = stream.listen((dynamic _) => notifyListeners());
+  }
+  late final dynamic _subscription;
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}

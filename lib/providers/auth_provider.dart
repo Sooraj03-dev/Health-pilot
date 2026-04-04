@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:health_pilot/core/supabase_client.dart';
 import 'package:health_pilot/services/auth_service.dart';
+import 'package:health_pilot/services/profile_service.dart';
 
 // ─── AuthState ──────────────────────────────────────────────────────────────────
 
@@ -60,12 +61,23 @@ class AuthState {
 /// via `state.error` instead of throwing — the UI never needs try/catch.
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthService _authService;
+  final ProfileService _profileService;
 
-  AuthNotifier({AuthService? authService})
+  AuthNotifier({AuthService? authService, ProfileService? profileService})
       : _authService = authService ?? AuthService(),
+        _profileService = profileService ?? ProfileService(),
         super(const AuthState()) {
-    // Hydrate state if the user is already logged in (e.g. app restart).
-    _restoreSession();
+    _initAuthStateListener();
+  }
+
+  void _initAuthStateListener() {
+    supabase.auth.onAuthStateChange.listen((data) {
+      if (data.session == null) {
+        state = const AuthState();
+      } else {
+        _restoreSession();
+      }
+    });
   }
 
   // ── Session restore ──────────────────────────────────────────────────────────
@@ -146,6 +158,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String email,
     required String password,
     required String role,
+    required String fullName,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
 
@@ -154,6 +167,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         email: email,
         password: password,
         role: role,
+        fullName: fullName,
       );
 
       final user = response.user;
@@ -209,13 +223,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   /// Fetches a single profile row from the `profiles` table.
   Future<Map<String, dynamic>> _fetchProfile(String userId) async {
-    final response = await supabase
-        .from('profiles')
-        .select('role, is_verified')
-        .eq('user_id', userId)
-        .single();
-
-    return response;
+    final userModel = await _profileService.fetchProfile(userId);
+    return {
+      'role': userModel?.role,
+      'is_verified': userModel?.isVerified ?? false,
+    };
   }
 }
 

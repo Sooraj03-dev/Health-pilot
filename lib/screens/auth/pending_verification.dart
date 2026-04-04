@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:health_pilot/providers/auth_provider.dart';
 
 /// Shown when a user has signed up but their profile is not yet verified.
-class PendingVerificationPage extends StatelessWidget {
+class PendingVerificationPage extends ConsumerWidget {
   const PendingVerificationPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -15,7 +17,7 @@ class PendingVerificationPage extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   Icons.mark_email_unread_rounded,
@@ -39,6 +41,12 @@ class PendingVerificationPage extends StatelessWidget {
                     color: colorScheme.onSurfaceVariant,
                   ),
                   textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                FilledButton.icon(
+                  onPressed: () => ref.read(authProvider.notifier).signOut(),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sign Out'),
                 ),
               ],
             ),
