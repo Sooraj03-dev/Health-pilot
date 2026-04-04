@@ -1,3 +1,39 @@
-
-# Secrets
+# ─── ENVIRONMENT & SECRETS ──────────────────
 .env
+.env.*
+*.env
+secrets.dart
+google-services.json
+GoogleService-Info.plist
+
+# ─── FLUTTER / DART ─────────────────────────
+# Build outputs
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+
+# Dart generated files
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Pub cache
+.pub-cache/
+.pub/
+
+# ─── ANDROID ────────────────────────────────
+android/.gradle/
+android/local.properties
+android/key.properties
+android/*.jks
+android/app/google-services.json
+**/android/captures/
+**/android/.idea/
+**/android/gradlew
+**/android/gradlew.bat
+
+# ─── IOS ────────────────────────────────────
+ios/Pods/
+ios/.symlinks/
