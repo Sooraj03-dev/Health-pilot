@@ -1,3 +1,35 @@
+# Flutter/Dart
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
 
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Android build
+android/.gradle/
+android/app/build/
+
+# iOS build
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+
+# Misc
+coverage/
 # Secrets
 .env
+
+build/
+.dart_tool/
+.android/
+.ios/
+.vscode/
+.idea/                                                          
