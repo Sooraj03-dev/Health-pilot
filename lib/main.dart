@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:health_pilot/core/theme.dart';
 import 'package:health_pilot/router.dart';
 import 'package:health_pilot/services/notification_service.dart';
+import 'package:health_pilot/services/watch_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,9 @@ Future<void> main() async {
   final notificationService = container.read(notificationServiceProvider);
   await notificationService.init();
   await notificationService.requestPermissions();
+
+  // Start background periodic syncing of health vitals
+  WatchService().startSyncing();
 
   runApp(UncontrolledProviderScope(
     container: container,

@@ -1,5 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:health/health.dart';
+
+import '../core/supabase_client.dart';
 
 /// Permission status for Health Connect integration.
 enum HealthPermissionStatus {
@@ -108,6 +112,78 @@ class HealthConnectService {
     } catch (e) {
       debugPrint('HealthConnect readLatestVitals error: $e');
       return {'heartRate': null, 'spo2': null};
+    }
+  }
+}
+
+/// A background service that periodically synchronizes recent vitals from
+/// Health Connect directly to the Supabase backend.
+class WatchService {
+  WatchService._internal();
+  static final WatchService _instance = WatchService._internal();
+
+  /// Gets the singleton instance of WatchService.
+  factory WatchService() => _instance;
+
+  Timer? _timer;
+  bool _isSyncing = false;
+
+  /// Starts the periodic syncing of vitals (e.g., every 5 minutes).
+  void startSyncing({Duration interval = const Duration(minutes: 5)}) {
+    if (_timer != null && _timer!.isActive) return;
+
+    _timer = Timer.periodic(interval, (_) => _syncVitals());
+    
+    // Trigger an initial sync immediately.
+    _syncVitals();
+  }
+
+  /// Stops the periodic syncing of vitals.
+  void stopSyncing() {
+    _timer?.cancel();
+    _timer = null;
+  }
+
+  Future<void> _syncVitals() async {
+    if (_isSyncing) return; // Prevent overlapping syncs
+    _isSyncing = true;
+
+    try {
+      final user = supabase.auth.currentUser;
+      if (user == null) {
+        debugPrint('WatchService: No authenticated user. Skipping sync.');
+        return;
+      }
+
+      final healthService = HealthConnectService();
+      
+      // Ensure permissions are handled gracefully
+      final status = await healthService.checkPermissions();
+      if (status != HealthPermissionStatus.granted) {
+        debugPrint('WatchService: Health Connect permissions not granted. Skipping sync.');
+        return;
+      }
+
+      final vitals = await healthService.readLatestVitals();
+      final heartRate = vitals['heartRate'];
+      final spo2 = vitals['spo2'];
+
+      // Only insert if there's actually some data
+      if (heartRate != null || spo2 != null) {
+        await supabase.from('health_metrics').insert({
+          'user_id': user.id,
+          'heart_rate': heartRate,
+          'spo2': spo2,
+          'recorded_at': DateTime.now().toIso8601String(),
+        });
+        debugPrint('WatchService: Synced vitals to Supabase successfully.');
+      } else {
+        debugPrint('WatchService: No recent vitals found. Skipped DB insert.');
+      }
+    } catch (e) {
+      debugPrint('WatchService error during sync: $e');
+    } finally {
+      _isSyncing = false;
     }
   }
 }
