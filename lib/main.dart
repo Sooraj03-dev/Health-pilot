@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:health_pilot/core/theme.dart';
 import 'package:health_pilot/router.dart';
+import 'package:health_pilot/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +19,17 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  runApp(const ProviderScope(child: HealthPilotApp()));
+  final container = ProviderContainer();
+  
+  // Initialize notifications and request permissions on app launch
+  final notificationService = container.read(notificationServiceProvider);
+  await notificationService.init();
+  await notificationService.requestPermissions();
+
+  runApp(UncontrolledProviderScope(
+    container: container,
+    child: const HealthPilotApp(),
+  ));
 }
 
 /// Root widget for Health Pilot.
@@ -28,6 +39,9 @@ class HealthPilotApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+
+    // Keep the SOS subscription active 
+    ref.watch(sosSubscriptionProvider);
 
     return MaterialApp.router(
       title: 'Health Pilot',
