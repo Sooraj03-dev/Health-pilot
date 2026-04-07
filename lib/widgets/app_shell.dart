@@ -58,7 +58,7 @@ class _AppShellState extends State<AppShell> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.article_outlined),
-              label: 'Reports',
+              label: 'Records',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline),

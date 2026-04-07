@@ -10,6 +10,7 @@ import 'package:health_pilot/screens/dashboards/patient_dashboard.dart';
 import 'package:health_pilot/screens/dashboards/doctor_dashboard.dart';
 import 'package:health_pilot/screens/vitals/sos_screen.dart';
 import 'package:health_pilot/widgets/app_shell.dart';
+import 'package:health_pilot/screens/records/records_screen.dart';
 
 /// Application router.
 ///
@@ -74,7 +75,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           pages: [
             const PatientDashboard(),
             const Center(child: Text('Vitals')),
-            const Center(child: Text('Reports')),
+            const RecordsScreen(),
             const Center(child: Text('Profile')),
           ],
         ),
