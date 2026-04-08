@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ── Sensor permissions ──────────────────────────────────────────── -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
+
+    <!-- ── Foreground service permissions ─────────────────────────────── -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_HEALTH" />
+
+    <!-- ── Wake lock so the service survives screen-off ───────────────── -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Required by the Wearable Data Layer API -->
+    <uses-feature android:name="android.hardware.type.watch" />
+
+    <application
+        android:label="Health Pilot Watch"
+        android:icon="@mipmap/ic_launcher"
+        android:theme="@android:style/Theme.DeviceDefault">
+
+        <!--
+            VitalsService — foreground service that reads HR + SpO2 in real-time
+            and relays them to the paired phone via the Wearable Data Layer.
+            foregroundServiceType="health" is mandatory on API 34+ for sensor access.
+        -->
+        <service
+            android:name=".VitalsService"
+            android:exported="false"
+            android:foregroundServiceType="health"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+            <intent-filter>
+                <action android:name="com.healthpilot.health_pilot.START_VITALS" />
+            </intent-filter>
+        </service>
+
+        <!--
+            Minimal launcher activity — just starts VitalsService then finishes.
+            Wear OS requires at least one LAUNCHER activity.
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="Health Pilot"
+            android:theme="@android:style/Theme.DeviceDefault">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+    </application>
+
+</manifest>

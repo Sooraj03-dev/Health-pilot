@@ -36,6 +36,9 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    // Wearable Data Layer — receive sensor data from paired Galaxy Watch
+    implementation("com.google.android.gms:play-services-wearable:18.1.0")
 }
 
 flutter {

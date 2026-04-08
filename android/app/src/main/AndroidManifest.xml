@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
+
+    <!-- Wearable Data Layer — required to receive watch sensor data -->
+    <uses-permission android:name="android.permission.BODY_SENSORS" />
+    <uses-permission android:name="android.permission.BODY_SENSORS_BACKGROUND" />
     
     <!-- Health Connect Permissions -->
     <uses-permission android:name="android.permission.health.READ_HEART_RATE"/>
@@ -48,6 +52,30 @@
                 <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
             </intent-filter>
         </activity-alias>
+
+        <!--
+            WearListenerService — receives DataItem events from the watch
+            over the Wearable Data Layer and pushes them into Flutter via
+            the health_pilot/watch_data EventChannel.
+        -->
+        <service
+            android:name=".WearListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/vitals" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.DATA_CHANGED" />
+                <data
+                    android:scheme="wear"
+                    android:host="*"
+                    android:pathPrefix="/sleep" />
+            </intent-filter>
+        </service>
 
         <meta-data
             android:name="flutterEmbedding"

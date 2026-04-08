@@ -31,9 +31,8 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _initWatchService());
   }
 
-  /// Requests Health Connect permissions if needed, then starts the sync timer.
-  /// requestPermissions() is safe to call when permissions are already granted
-  /// — it returns true immediately without showing a dialog.
+  /// Requests Health Connect permissions, starts the 60-second Health Connect
+  /// poll, and opens the Wear OS EventChannel for real-time push data.
   Future<void> _initWatchService() async {
     debugPrint('[PatientDashboard] Requesting Health Connect permissions...');
     await _watchService.requestPermissions();
@@ -41,12 +40,21 @@ class _PatientDashboardState extends ConsumerState<PatientDashboard> {
     // hasPermissions() on Android HC is unreliable. _syncData() will
     // gracefully catch any actual permission exceptions.
     _watchService.startSync();
+
+    // Open the Wear OS EventChannel — fires on each watch sensor reading (~1-2 s).
+    // Falls back to Health Connect polling if no watch is paired.
+    final userId = supabase.auth.currentUser?.id;
+    if (userId != null) {
+      _watchService.startListening(userId);
+      debugPrint('[PatientDashboard] Wear OS EventChannel started for user: $userId');
+    }
     debugPrint('[PatientDashboard] WatchService sync started.');
   }
 
   @override
   void dispose() {
     _watchService.stopSync();
+    _watchService.stopListening();  // Cancel Wear OS EventChannel
     super.dispose();
   }
 

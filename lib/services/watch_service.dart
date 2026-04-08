@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:health/health.dart';
 import 'package:health_pilot/core/supabase_client.dart';
 import 'package:health_pilot/models/health_metric.dart';
+import 'package:health_pilot/models/sleep_session.dart';
 
 /// The two Health Connect data types this service reads.
 const _kTypes = [
@@ -17,12 +19,15 @@ const _kPermissions = [
   HealthDataAccess.READ,
 ];
 
-/// How often the background sync runs.
+/// How often the background Health Connect sync runs.
 const _kSyncInterval = Duration(seconds: 60);
 
 /// How far back each sync window looks for fresh readings.
 /// Intentionally wide (24 h) so first-run picks up data already in Health Connect.
 const _kLookbackWindow = Duration(hours: 24);
+
+/// EventChannel name — must match [HeartRateChannel.CHANNEL_NAME] in Kotlin.
+const _kWatchChannel = 'health_pilot/watch_data';
 
 // ---------------------------------------------------------------------------
 // WatchService
@@ -69,8 +74,15 @@ class WatchService {
 
   bool _isSyncing = false;
 
-  /// `true` while the periodic timer is active.
+  /// `true` while the periodic Health Connect timer is active.
   bool get isSyncing => _isSyncing;
+
+  // ── Watch EventChannel state ───────────────────────────────────────────────
+
+  StreamSubscription<dynamic>? _watchSub;
+
+  /// `true` while the Wear OS EventChannel stream is active.
+  bool get isListening => _watchSub != null;
 
   // ---------------------------------------------------------------------------
   // Public API
@@ -140,6 +152,109 @@ class WatchService {
     _syncTimer = null;
     _isSyncing = false;
     debugPrint('[WatchService] Sync stopped.');
+  }
+
+  // ── Wear OS EventChannel (real-time push path) ───────────────────────────
+
+  /// Opens the [EventChannel] that the Kotlin [WearListenerService] writes
+  /// to whenever the watch sends a new sensor reading.
+  ///
+  /// On `"vitals"` payload: inserts a row into `health_metrics`.
+  /// On `"sleep"` payload:  inserts a row into `sleep_sessions`.
+  ///
+  /// Idempotent — safe to call multiple times; subsequent calls are no-ops.
+  void startListening(String userId) {
+    if (_watchSub != null) return;
+
+    const channel = EventChannel(_kWatchChannel);
+
+    _watchSub = channel.receiveBroadcastStream().listen(
+      (dynamic event) => _handleWatchEvent(event, userId),
+      onError: (dynamic err) {
+        debugPrint('[WatchService] EventChannel error: $err');
+      },
+      cancelOnError: false,
+    );
+
+    debugPrint('[WatchService] Wear OS EventChannel listening (userId: $userId).');
+  }
+
+  /// Cancels the EventChannel subscription.
+  ///
+  /// Safe to call even if [startListening] was never invoked.
+  void stopListening() {
+    _watchSub?.cancel();
+    _watchSub = null;
+    debugPrint('[WatchService] Wear OS EventChannel stopped.');
+  }
+
+  /// Routes incoming watch events to the correct Supabase insert.
+  Future<void> _handleWatchEvent(dynamic event, String userId) async {
+    if (event is! Map) {
+      debugPrint('[WatchService] Unexpected EventChannel payload type: ${event.runtimeType}');
+      return;
+    }
+
+    final type = event['type'] as String?;
+
+    switch (type) {
+      case 'vitals':
+        await _insertVitalsFromWatch(event, userId);
+
+      case 'sleep':
+        await _insertSleepFromWatch(event, userId);
+
+      default:
+        debugPrint('[WatchService] Unknown watch event type: $type');
+    }
+  }
+
+  Future<void> _insertVitalsFromWatch(Map event, String userId) async {
+    try {
+      final heartRate = (event['heartRate'] as num?)?.toDouble();
+      final spo2      = (event['spo2']      as num?)?.toDouble();
+      final tsMs      = (event['timestamp'] as num?)?.toInt();
+      final recordedAt = tsMs != null
+          ? DateTime.fromMillisecondsSinceEpoch(tsMs, isUtc: true)
+          : DateTime.now().toUtc();
+
+      final metric = HealthMetric(
+        userId:     userId,
+        heartRate:  heartRate ?? 0.0,
+        spo2:       spo2      ?? 0.0,
+        recordedAt: recordedAt,
+      );
+
+      await supabase.from('health_metrics').insert(metric.toJson());
+
+      debugPrint(
+        '[WatchService] ✓ Watch vitals: HR=${heartRate?.toStringAsFixed(1)} '
+        'SpO2=${spo2?.toStringAsFixed(1)}%',
+      );
+    } catch (e) {
+      debugPrint('[WatchService] Failed to insert watch vitals: $e');
+    }
+  }
+
+  Future<void> _insertSleepFromWatch(Map event, String userId) async {
+    try {
+      final startMs   = (event['sleepStart']      as num).toInt();
+      final endMs     = (event['sleepEnd']        as num).toInt();
+      final durMins   = (event['durationMinutes'] as num).toInt();
+
+      final session = SleepSession(
+        userId:          userId,
+        sleepStart:      DateTime.fromMillisecondsSinceEpoch(startMs, isUtc: true),
+        sleepEnd:        DateTime.fromMillisecondsSinceEpoch(endMs,   isUtc: true),
+        durationMinutes: durMins,
+      );
+
+      await supabase.from('sleep_sessions').insert(session.toJson());
+
+      debugPrint('[WatchService] ✓ Sleep session: ${durMins}min');
+    } catch (e) {
+      debugPrint('[WatchService] Failed to insert sleep session: $e');
+    }
   }
 
   // ---------------------------------------------------------------------------
